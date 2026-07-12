@@ -6,6 +6,8 @@
     <title>Class Awards Survey ✨</title>
     <!-- Include EmailJS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/emailjs.min.js"></script>
+    <!-- Include html2canvas for Image Receipt Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             --bg-color: #fff5f7;         /* Super Cutesy Sweet Strawberry Milk Pink */
@@ -151,15 +153,6 @@
             transform: translateY(-1px);
         }
 
-        .btn-download {
-            background: var(--accent-cream);
-            color: var(--primary-pink);
-        }
-
-        .btn-download:hover {
-            background: #ffe3e8;
-        }
-
         .status-msg {
             margin-top: 18px;
             font-size: 0.95rem;
@@ -177,6 +170,58 @@
         option {
             color: var(--text-dark);
             font-weight: normal;
+        }
+
+        /* Invisible Container for rendering the Beautiful Image Receipt */
+        #receiptCaptureWrapper {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+        }
+        .receipt-card {
+            width: 450px;
+            background: #ffffff;
+            border: 4px double var(--primary-pink);
+            border-radius: 24px;
+            padding: 30px;
+            color: var(--text-dark);
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .receipt-header {
+            text-align: center;
+            border-bottom: 2px dashed var(--primary-pink);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .receipt-header h2 {
+            color: var(--primary-pink);
+            font-size: 1.5rem;
+        }
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            border-bottom: 1px dotted #eee;
+            padding-bottom: 4px;
+        }
+        .receipt-row .label {
+            font-weight: bold;
+            color: var(--light-pink);
+        }
+        .receipt-row .value {
+            text-align: right;
+            max-width: 60%;
+            word-wrap: break-word;
+        }
+        .receipt-footer {
+            text-align: center;
+            margin-top: 25px;
+            font-weight: 600;
+            color: var(--primary-pink);
+            font-size: 0.95rem;
+            border-top: 2px dashed var(--primary-pink);
+            padding-top: 15px;
         }
     </style>
 </head>
@@ -351,6 +396,7 @@
                     <option value="CORRIA, ERICA, ESPILA">CORRIA, ERICA, ESPILA</option>
                     <option value="CRUZ, LISSIE LAUREN, JAWILI">CRUZ, LISSIE LAUREN, JAWILI</option>
                     <option value="ESTRELLA, MARIELLE DOMINGO">ESTRELLA, MARIELLE DOMINGO</option>
+                                        <option value="ESTRELLA, MARIELLE DOMINGO">ESTRELLA, MARIELLE DOMINGO</option>
                     <option value="GATAB, ISSHIAH, PAUSANOS">GATAB, ISSHIAH, PAUSANOS</option>
                     <option value="IMPORTANTE, MARIANE JOY, FRANCISCO">IMPORTANTE, MARIANE JOY, FRANCISCO</option>
                     <option value="MEDI, CHERRY LOU, ANTIQUINA">MEDI, CHERRY LOU, ANTIQUINA</option>
@@ -575,7 +621,7 @@
                     <option value="JAVIER, MAC KERBY, VALLOTA">JAVIER, MAC KERBY, VALLOTA</option>
                     <option value="KAMID, LORD JAYCIE MENDOZA">KAMID, LORD JAYCIE MENDOZA</option>
                     <option value="LA PAZ, JAN NOAH REY VALLECER">LA PAZ, JAN NOAH REY VALLECER</option>
-                    <option value="MASAGA, JOHN CYRUS, DEMDAM">MASAGA, JOHN CYRUS, DEMDAM</option>
+                                       <option value="MASAGA, JOHN CYRUS, DEMDAM">MASAGA, JOHN CYRUS, DEMDAM</option>
                     <option value="MENDOZA, CRISTOFFER">MENDOZA, CRISTOFFER</option>
                     <option value="MENDOZA, PRINCE DYLAN">MENDOZA, PRINCE DYLAN</option>
                     <option value="PITERO, PRINCE ZEDRIX CZYRILLE, VILLAMOR">PITERO, PRINCE ZEDRIX CZYRILLE, VILLAMOR</option>
@@ -811,7 +857,7 @@
                     <option value="CATUBIG, JOY-ANN, G">CATUBIG, JOY-ANN, G</option>
                     <option value="CONTENIDO, LORRAINE YZABELLE, ORTIZ">CONTENIDO, LORRAINE YZABELLE, ORTIZ</option>
                     <option value="CORRIA, ERICA, ESPILA">CORRIA, ERICA, ESPILA</option>
-                    <option value="CRUZ, LISSIE LAUREN, JAWILI">CRUZ, LISSIE LAUREN, JAWILI</option>
+                                        <option value="CRUZ, LISSIE LAUREN, JAWILI">CRUZ, LISSIE LAUREN, JAWILI</option>
                     <option value="ESTRELLA, MARIELLE DOMINGO">ESTRELLA, MARIELLE DOMINGO</option>
                     <option value="GATAB, ISSHIAH, PAUSANOS">GATAB, ISSHIAH, PAUSANOS</option>
                     <option value="IMPORTANTE, MARIANE JOY, FRANCISCO">IMPORTANTE, MARIANE JOY, FRANCISCO</option>
@@ -862,11 +908,24 @@
         <!-- ACTIONS -->
         <div class="btn-container">
             <button type="submit" class="btn-submit">Submit Survey 🌸</button>
-            <button type="button" id="downloadBtn" class="btn-download">Download Spreadsheet (.csv)</button>
         </div>
     </form>
 
     <div class="status-msg" id="statusMsg"></div>
+</div>
+
+<!-- Hidden dynamic structure used to take snapshot for image download -->
+<div id="receiptCaptureWrapper">
+    <div class="receipt-card" id="receiptCard">
+        <div class="receipt-header">
+            <h2>VOTING BALLOT RECEIPT</h2>
+            <p style="font-size:0.8rem; color:var(--light-pink); margin-top:4px;">✨ Aspen Survey System ✨</p>
+        </div>
+        <div id="receiptFields"></div>
+        <div class="receipt-footer">
+            Thank you for participating! 🧸🌸
+        </div>
+    </div>
 </div>
 
 <script>
@@ -882,54 +941,86 @@
         status.style.color = "var(--light-pink)";
         status.textContent = "Sending your entries to the system... 🕊️";
 
-        // Structured payload mapping all choices to the email layout explicitly
+        // Collect current data for formatting payload and creating image text
+        const voter = document.getElementById('voterName').value;
+        const dataMapping = {
+            "Voter Name": voter,
+            "Prettiest": document.getElementById('prettiest').value,
+            "Most Handsome": document.getElementById('mostHandsome').value,
+            "Funniest": document.getElementById('funniest').value,
+            "Kindest": document.getElementById('kindest').value,
+            "Smartest": document.getElementById('smartest').value,
+            "Loudest": document.getElementById('loudest').value,
+            "Cutest": document.getElementById('cutest').value,
+            "Most Quiet": document.getElementById('mostQuiet').value,
+            "Most Popular": document.getElementById('mostPopular').value,
+            "Best Ships": document.getElementById('bestShips').value,
+            "Animal Lovers": document.getElementById('animalLovers').value,
+            "Most Nonchalant": document.getElementById('mostNonchalant').value
+        };
+
+        // Structured payload mapping all choices to the email template layout explicitly
         const formData = {
-            to_email: 'johncris226655@gmail.com', // Dynamic routing value fallback
-            voter_name: document.getElementById('voterName').value,
-            prettiest: document.getElementById('prettiest').value,
-            most_handsome: document.getElementById('mostHandsome').value,
-            funniest: document.getElementById('funniest').value,
-            kindest: document.getElementById('kindest').value,
-            smartest: document.getElementById('smartest').value,
-            loudest: document.getElementById('loudest').value,
-            cutest: document.getElementById('cutest').value,
-            most_quiet: document.getElementById('mostQuiet').value,
-            most_popular: document.getElementById('mostPopular').value,
-            best_ships: document.getElementById('bestShips').value,
-            animal_lovers: document.getElementById('animalLovers').value,
-            most_nonchalant: document.getElementById('mostNonchalant').value
+            to_email: 'johncris226655@gmail.com', 
+            voter_name: dataMapping["Voter Name"],
+            prettiest: dataMapping["Prettiest"],
+            most_handsome: dataMapping["Most Handsome"],
+            funniest: dataMapping["Funniest"],
+            kindest: dataMapping["Kindest"],
+            smartest: dataMapping["Smartest"],
+            loudest: dataMapping["Loudest"],
+            cutest: dataMapping["Cutest"],
+            most_quiet: dataMapping["Most Quiet"],
+            most_popular: dataMapping["Most Popular"],
+            best_ships: dataMapping["Best Ships"],
+            animal_lovers: dataMapping["Animal Lovers"],
+            most_nonchalant: dataMapping["Most Nonchalant"]
         };
 
         // Targeted using your updated Service ID and Template ID
         emailjs.send('service_85rii7m', 'template_5hkkk7d', formData)
             .then(function() {
                 status.style.color = "var(--success-green)";
-                status.textContent = "Submitted successfully! Data sent to John Cris. ✨";
-                document.getElementById('surveyForm').reset();
+                status.textContent = "Success! Email sent. Generating your image receipt download... ✨";
+
+                // Generate HTML structure for image receipt inside hidden div
+                const targetDisplay = document.getElementById('receiptFields');
+                targetDisplay.innerHTML = '';
+                for (const [title, selectedValue] of Object.entries(dataMapping)) {
+                    targetDisplay.innerHTML += `
+                        <div class="receipt-row">
+                            <span class="label">${title}:</span>
+                            <span class="value">${selectedValue}</span>
+                        </div>`;
+                }
+
+                // Wait slightly for DOM injection, then take screenshot and force auto download on mobile/desktop
+                setTimeout(() => {
+                    const receiptCardNode = document.getElementById('receiptCard');
+                    html2canvas(receiptCardNode, { scale: 2, useCORS: true }).then(canvas => {
+                        const imgData = canvas.toDataURL('image/png');
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = imgData;
+                        downloadLink.download = `Vote_Receipt_${voter.replace(/\s+/g, '_')}.png`;
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+                        
+                        status.textContent = "Done! Form sent to system & receipt image downloaded successfully! 🌸";
+                        document.getElementById('surveyForm').reset();
+                    }).catch(err => {
+                        console.error("Receipt Image Gen Error:", err);
+                        status.style.color = "#d96c6c";
+                        status.textContent = "Email sent successfully, but receipt image download ran into an unexpected system bug.";
+                    });
+                }, 600);
+
             }, function(error) {
                 status.style.color = "#d96c6c";
                 status.textContent = "Submission error! Failed details: " + JSON.stringify(error);
                 console.error("EmailJS Error details:", error);
             });
     });
-
-    // CSV Download
-    document.getElementById('downloadBtn').addEventListener('click', function() {
-        const headers = ["Voter Name", "Prettiest", "Most Handsome", "Funniest", "Kindest", "Smartest", "Loudest", "Cutest", "Most Quiet", "Most Popular", "Best Ships", "Animal Lovers", "Most Nonchalant"];
-        const fields = ['voterName', 'prettiest', 'mostHandsome', 'funniest', 'kindest', 'smartest', 'loudest', 'cutest', 'mostQuiet', 'mostPopular', 'bestShips', 'animalLovers', 'mostNonchalant'];
-        
-        const rowData = fields.map(id => `"${document.getElementById(id).value.replace(/"/g, '""')}"`);
-        let csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers.join(",") + "\n" + rowData.join(",");
-
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `Survey_Response_${Date.now()}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    });
 </script>
 </body>
 </html>
-                    
